@@ -145,7 +145,7 @@ This creates something like:
 Automatic processing of the log message using regex (message part only) requires something like:
 
         /User (\d+) plays (.+?) in game (\d+)$/
-
+        
 >Regex are tricky, hard to decipher and depend on the grammar of the language (english, german, ...). Especially think about data with spaces or other non-alphanumerical content ...
 
 ### Option 1: Use a "native" format 
@@ -168,52 +168,57 @@ And the rest is left to some JSON parser ...
 
 ### Option 2: Structured log messages
 
-If the library in use is not able to produce pure "native" formats, automatic log processing still picks up speed with EASY to parse messages.
+If the library in use is not able to produce pure "native" formats, automatic log processing still picks up speed with EASY to parse messages. With T=timestamp, I=id, L=level, C=classname and N=V as name=value pairs, just imagine a log format similar to this
+
+        TTTTTTTTTTTTTTTTTTTTTTT IIII LLLL  CCCCCCCCCCCCCC  N=V,...,N=V
  
         2013-01-12 17:49:37,656 [T1] INFO  c.d.g.DataPath  action=Data path found in registry, Path=C:\ProgramData\Xxxxxxx\xxxx + xxxxxx\Xxxxx\, Result=0x0
         2013-01-12 17:49:37,884 [T1] INFO  c.d.g.RegistryOpen  action=Read registry, Key=\\HKLM\..., Result='Safe', Code=0x0
 
-Such lines can be parsed with a fairly simple regex
+Such lines (the important name=value bits) can be parsed with a fairly simple regex (values MUST NOT contain ',')
 
-        /([^ ][^=]*)[ =]+([^,]*)[ ,]?/g
+        /([^ ][^=]*)=([^,]*)[ ,]*/g
 
 regex results for examples
 
         Match 1
-        Full match	0-35	`action=Data path found in registry,`
-        Group 1.	0-6	`action`
-        Group 2.	7-34	`Data path found in registry`
-
+        Full match	0-87	`2013-01-12 17:49:37,656 [T1] INFO  c.d.g.DataPath  action=Data path found in registry, `
+        Group 1.	0-57	`2013-01-12 17:49:37,656 [T1] INFO  c.d.g.DataPath  action`
+        Group 2.	58-85	`Data path found in registry`
+        
         Match 2
-        Full match	36-85	`Path=C:\ProgramData\Xxxxxxx\xxxx + xxxxxx\Xxxxx\,`
-        Group 1.	36-40	`Path`
-        Group 2.	41-84	`C:\ProgramData\Xxxxxxx\xxxx + xxxxxx\Xxxxx\`
-
+        Full match	87-137	`Path=C:\ProgramData\Xxxxxxx\xxxx + xxxxxx\Xxxxx\, `
+        Group 1.	87-91	`Path`
+        Group 2.	92-135	`C:\ProgramData\Xxxxxxx\xxxx + xxxxxx\Xxxxx\`
+        
         Match 3
-        Full match	86-96	`Result=0x0`
-        Group 1.	86-92	`Result`
-        Group 2.	93-96	`0x0`
+        Full match	137-147	`Result=0x0`
+        Group 1.	137-143	`Result`
+        Group 2.	144-147	`0x0`
 
 
         Match 1
-        Full match	0-21	`action=Read registry,`
-        Group 1.	0-6	`action`
+        Full match	0-22	`action=Read registry, `
+        Group 1.	0-6	    `action`
         Group 2.	7-20	`Read registry`
-
+        
         Match 2
-        Full match	22-37	`Key=\\HKLM\...,`
+        Full match	22-38	`Key=\\HKLM\..., `
         Group 1.	22-25	`Key`
         Group 2.	26-36	`\\HKLM\...`
-
+        
         Match 3
-        Full match	38-52	`Result='Safe',`
+        Full match	38-53	`Result='Safe', `
         Group 1.	38-44	`Result`
         Group 2.	45-51	`'Safe'`
-
+        
         Match 4
         Full match	53-61	`Code=0x0`
         Group 1.	53-57	`Code`
         Group 2.	58-61	`0x0`
+
+        
+>"Structured log messages" have to take care of required escaping (put an escape character like \ in front) or quoting (placing " or ' around data with spaces) for the data in question.
 
 
 ### Language(s)
